@@ -10,15 +10,17 @@ from skimage.segmentation import mark_boundaries
 # -----------------------------
 # LOAD MODEL
 # -----------------------------
-model = tf.keras.models.load_model("models/plant_model.h5")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "models", "plant_model.h5")
+
+model = tf.keras.models.load_model(MODEL_PATH)
 
 # -----------------------------
-# LOAD CLASS NAMES (FIXED)
+# LOAD CLASS NAMES
 # -----------------------------
-BASE_DIR = os.path.dirname(__file__)
-json_path = os.path.join(BASE_DIR, "class_names.json")
+JSON_PATH = os.path.join(BASE_DIR, "class_names.json")
 
-with open(json_path, "r") as f:
+with open(JSON_PATH, "r") as f:
     class_names = json.load(f)
 
 # -----------------------------
@@ -36,13 +38,11 @@ def preprocess_image(img_path):
 
     return img
 
-
 # -----------------------------
-# CHECK IF PLANT IMAGE
+# VALIDATE IMAGE
 # -----------------------------
 def is_valid_plant_image(img_path):
     img = cv2.imread(img_path)
-
     if img is None:
         return False
 
@@ -57,17 +57,8 @@ def is_valid_plant_image(img_path):
 
     return green_ratio > 0.05
 
-
 # -----------------------------
-# PREDICTION FUNCTION (FOR LIME)
-# -----------------------------
-def predict_fn(images):
-    images = np.array(images)
-    return model.predict(images)
-
-
-# -----------------------------
-# GET PREDICTION + CONFIDENCE
+# PREDICTION
 # -----------------------------
 def get_prediction(img_path):
     img = preprocess_image(img_path)
@@ -87,31 +78,89 @@ def get_prediction(img_path):
 
     return class_names[class_index], confidence
 
-
 # -----------------------------
-# LIME EXPLANATION
+# LIME (FIXED)
 # -----------------------------
 def explain_image(img_path):
-    img = preprocess_image(img_path)
 
+    img = cv2.imread(img_path)
     if img is None:
         return None
+
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = cv2.resize(img, (224, 224))
+
+    def predict_fn(images):
+        images = np.array(images) / 255.0
+        return model.predict(images)
 
     explainer = lime_image.LimeImageExplainer()
 
     explanation = explainer.explain_instance(
-        image=img,
-        classifier_fn=predict_fn,
+        img,
+        predict_fn,
         top_labels=1,
-        hide_color=0,
-        num_samples=300
+        hide_color=None,
+        num_samples=1000
     )
 
     temp, mask = explanation.get_image_and_mask(
         explanation.top_labels[0],
         positive_only=True,
-        num_features=5,
+        num_features=10,
         hide_rest=False
     )
 
-    return mark_boundaries(temp, mask)
+    return mark_boundaries(temp / 255.0, mask)
+
+# -----------------------------
+# AI EXPLANATION
+# -----------------------------
+def generate_explanation(label, confidence):
+
+    if "invalid" in label.lower():
+        return "The uploaded image is not a valid plant leaf."
+
+    if "healthy" in label.lower():
+        return f"The plant is healthy with {confidence:.2f}% confidence."
+
+    if confidence > 85:
+        return f"The model strongly predicts {label.replace('_',' ')} with high confidence ({confidence:.2f}%). Disease regions are clearly visible."
+
+    elif confidence > 60:
+        return f"The model predicts {label.replace('_',' ')} with moderate confidence ({confidence:.2f}%). Some disease patterns are visible."
+
+    else:
+        return f"The prediction confidence is low ({confidence:.2f}%). Image quality or disease features may be unclear."
+
+# -----------------------------
+# DISEASE DETAILS
+# -----------------------------
+disease_info = {
+    "Potato___Early_blight": {
+        "description": "A fungal disease affecting potato leaves.",
+        "cause": "Alternaria solani fungus.",
+        "symptoms": "Brown spots with concentric rings.",
+        "treatment": "Use fungicides and remove infected leaves."
+    },
+    "Apple___Cedar_apple_rust": {
+        "description": "Fungal disease causing orange-yellow spots.",
+        "cause": "Gymnosporangium fungus.",
+        "symptoms": "Orange spots on leaves.",
+        "treatment": "Apply fungicide and remove infected parts."
+    },
+    "Healthy": {
+        "description": "No disease detected.",
+        "cause": "Healthy plant.",
+        "symptoms": "Green leaf.",
+        "treatment": "Maintain care."
+    }
+}
+
+def get_disease_details(label):
+    return disease_info.get(label, {
+        "description": "No info available.",
+        "cause": "Unknown",
+        "symptoms": "Not identified",
+        "treatment": "Consult expert."
+    })

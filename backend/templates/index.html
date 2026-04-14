@@ -9,6 +9,7 @@
 <style>
 body {
     background: #f4f7fb;
+    transition: 0.3s;
 }
 
 /* SIDEBAR */
@@ -57,6 +58,10 @@ body {
 .dark-mode .card {
     background: #1e293b !important;
     color: white !important;
+}
+
+.dark-mode .sidebar {
+    background: #000000 !important;
 }
 </style>
 </head>
@@ -109,18 +114,39 @@ body {
 
             {% set conf = confidence|default(0)|float %}
 
-            <div class="progress">
+            <div class="progress mb-3">
                 <div class="progress-bar bg-success"
                      style="width: {{ conf if conf <= 100 else 100 }}%">
                 </div>
             </div>
 
-            <hr>
-
+            <!-- ✅ LIME IMAGE SMALL + CENTER -->
             {% if result %}
-                <img src="data:image/jpeg;base64,{{ result }}" class="img-fluid rounded">
+                <h5 class="mt-3">🔍 Model Explanation</h5>
+
+                <div class="text-center">
+                    <img src="data:image/jpeg;base64,{{ result }}"
+                         class="img-fluid rounded shadow"
+                         style="max-width: 300px; height: auto;">
+                </div>
             {% else %}
                 <p class="text-warning">No explanation available</p>
+            {% endif %}
+
+            <hr>
+
+            <!-- AI TEXT -->
+            <p><b>AI Explanation:</b> {{ explanation_text }}</p>
+
+            <!-- DISEASE DETAILS -->
+            {% if details %}
+                <div class="mt-3">
+                    <h5><b>Disease Details</b></h5>
+                    <p><b>Description:</b> {{ details.description }}</p>
+                    <p><b>Cause:</b> {{ details.cause }}</p>
+                    <p><b>Symptoms:</b> {{ details.symptoms }}</p>
+                    <p><b>Treatment:</b> {{ details.treatment }}</p>
+                </div>
             {% endif %}
 
         {% else %}
