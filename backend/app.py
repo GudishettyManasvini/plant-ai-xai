@@ -21,15 +21,13 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 
-# Maximum request size: 5 MB
+
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-# -----------------------------
-# ERROR HANDLER
-# -----------------------------
+
 @app.errorhandler(RequestEntityTooLarge)
 def handle_large_file(error):
     return render_template(
@@ -43,17 +41,13 @@ def handle_large_file(error):
     ), 413
 
 
-# -----------------------------
-# LANDING PAGE
-# -----------------------------
+
 @app.route("/")
 def landing():
     return render_template("landing.html")
 
 
-# -----------------------------
-# DASHBOARD
-# -----------------------------
+
 @app.route("/dashboard")
 def dashboard():
     return render_template(
@@ -62,9 +56,7 @@ def dashboard():
     )
 
 
-# -----------------------------
-# PREDICTION
-# -----------------------------
+
 @app.route("/explain", methods=["POST"])
 def explain():
 
@@ -84,13 +76,13 @@ def explain():
                 active_section="prediction"
             )
 
-        # Securely validate and save the uploaded image.
+        
         filepath = save_secure_image(
             file,
             UPLOAD_FOLDER
         )
 
-        # Validate that the image is relevant to the application.
+        
         if not is_valid_plant_image(filepath):
             return render_template(
                 "index.html",
@@ -102,7 +94,7 @@ def explain():
                 active_section="prediction"
             )
 
-        # Run ML prediction.
+        
         label, confidence = get_prediction(filepath)
 
         explanation_text = generate_explanation(
@@ -110,7 +102,7 @@ def explain():
             confidence
         )
 
-        # LOW CONFIDENCE
+        
         if confidence < 60:
             details = None
 
@@ -121,7 +113,7 @@ def explain():
         else:
             details = get_disease_details(label)
 
-        # Generate XAI explanation.
+        
         lime_img = explain_image(filepath)
 
         img_base64 = None
@@ -159,7 +151,7 @@ def explain():
         )
 
     finally:
-        # Delete temporary uploaded image after processing.
+        
         if filepath and os.path.exists(filepath):
             try:
                 os.remove(filepath)
@@ -168,5 +160,5 @@ def explain():
 
 
 if __name__ == "__main__":
-    # Debug mode should not be enabled for production.
+   
     app.run(debug=False)

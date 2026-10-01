@@ -7,25 +7,19 @@ import os
 from lime import lime_image
 from skimage.segmentation import mark_boundaries
 
-# -----------------------------
-# LOAD MODEL
-# -----------------------------
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "models", "plant_model.h5")
 
 model = tf.keras.models.load_model(MODEL_PATH)
 
-# -----------------------------
-# LOAD CLASS NAMES
-# -----------------------------
+
 JSON_PATH = os.path.join(BASE_DIR, "class_names.json")
 
 with open(JSON_PATH, "r") as f:
     class_names = json.load(f)
 
-# -----------------------------
-# PREPROCESS IMAGE
-# -----------------------------
+
 def preprocess_image(img_path):
     img = cv2.imread(img_path)
 
@@ -38,9 +32,7 @@ def preprocess_image(img_path):
 
     return img
 
-# -----------------------------
-# VALIDATE IMAGE
-# -----------------------------
+
 def is_valid_plant_image(img_path):
     img = cv2.imread(img_path)
     if img is None:
@@ -57,9 +49,7 @@ def is_valid_plant_image(img_path):
 
     return green_ratio > 0.05
 
-# -----------------------------
-# PREDICTION
-# -----------------------------
+
 def get_prediction(img_path):
     img = preprocess_image(img_path)
 
@@ -78,9 +68,7 @@ def get_prediction(img_path):
 
     return class_names[class_index], confidence
 
-# -----------------------------
-# LIME (FIXED)
-# -----------------------------
+
 def explain_image(img_path):
 
     img = cv2.imread(img_path)
@@ -113,9 +101,7 @@ def explain_image(img_path):
 
     return mark_boundaries(temp / 255.0, mask)
 
-# -----------------------------
-# AI EXPLANATION
-# -----------------------------
+
 def generate_explanation(label, confidence):
 
     if "invalid" in label.lower():
@@ -133,9 +119,7 @@ def generate_explanation(label, confidence):
     else:
         return f"The prediction confidence is low ({confidence:.2f}%). Image quality or disease features may be unclear."
 
-# -----------------------------
-# DISEASE DETAILS
-# -----------------------------
+
 disease_info = {
     "Potato___Early_blight": {
         "description": "A fungal disease affecting potato leaves.",
